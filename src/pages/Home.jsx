@@ -1,25 +1,16 @@
-import { createSignal, Show, For, createEffect } from "solid-js";
+import { createSignal, createMemo, Show, For, createEffect, onCleanup } from "solid-js";
 import { isAuthenticated, authService } from "../services/auth.js";
 import { db } from "../lib/firebase.js";
 import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { formatDistanceToNow, isPast } from "date-fns";
+import { hr } from "date-fns/locale";
+import { addToast } from "../components/Toast.jsx";
 
 export default function Home() {
     const [events, setEvents] = createSignal([]);
     const [loading, setLoading] = createSignal(false);
     const [favorites, setFavorites] = createSignal([]);
-    const [difficultyFilter, setDifficultyFilter] = createSignal("all");
-
-    const difficulties = ["Beginner", "Intermediate", "Advanced"];
-
-    // pomoćna funkcija za dobivanje CSS klase za razinu težine
-    const getDifficultyBadgeClass = (difficulty) => {
-        switch(difficulty) {
-            case "Beginner": return "badge-success";
-            case "Intermediate": return "badge-warning";
-            case "Advanced": return "badge-error";
-            default: return "badge-ghost";
-        }
-    };
+    const [sortBy, setSortBy] = createSignal("datetime-asc");
 
     const loadEvents = async () => {
         setLoading(true);
@@ -44,46 +35,6 @@ export default function Home() {
         }
     }
 
-    // filtrirani događaji po težini
-    const filteredEvents = () => {
-        if (difficultyFilter() === "all") {
-            return events();
-        }
-        return events().filter(event => event.difficulty === difficultyFilter());
-    };
-
-    // preporuke događaja na osnovu korisnikovih favorita
-    const getRecommendations = () => {
-        if (favorites().length === 0) return [];
-
-        // pronađi najčešću razinu težine u favoritima
-        const favoritedEvents = events().filter(e => favorites().includes(e.id));
-        const difficultyCount = {};
-        
-        favoritedEvents.forEach(event => {
-            const diff = event.difficulty || "Beginner";
-            difficultyCount[diff] = (difficultyCount[diff] || 0) + 1;
-        });
-
-        // pronađi najčešću težinu
-        let mostCommonDifficulty = "Beginner";
-        let maxCount = 0;
-        Object.keys(difficultyCount).forEach(diff => {
-            if (difficultyCount[diff] > maxCount) {
-                maxCount = difficultyCount[diff];
-                mostCommonDifficulty = diff;
-            }
-        });
-
-        // preporuči događaje s istom težinom koji nisu u favoritima
-        return events()
-            .filter(event => 
-                !favorites().includes(event.id) && 
-                event.difficulty === mostCommonDifficulty
-            )
-            .slice(0, 3);
-    };
-
     const toggleFavorite = async (eventId) => {
         if (!isAuthenticated()) return;
 
@@ -99,14 +50,15 @@ export default function Home() {
                 ? favorites().filter(id => id !== eventId)
                 : [...favorites(), eventId]
             );
+            // ažuriramo stanje polja "favorites" - popis korisnika kojima je događaj označen
             setEvents(events().map(event =>
-                event.id === eventId
-                    ? {
-                        ...event, favorites: isFavorite
-                            ? (event.favorites || []).filter(id => id !== userId)
-                            : [...(event.favorites || []), userId]
+                event.id === eventId // u postojećem popisu događaj tražimo ciljani događaj
+                    ? { // našli smo ciljani događaj, ažuriramo ga
+                        ...event, favorites: isFavorite // uzimamo stare podatke događaja i ažuriramo polje "favorites"
+                            ? (event.favorites || []).filter(id => id !== userId) // ako je događaj prije bio u "favorites" sada ga izbacujemo
+                            : [...(event.favorites || []), userId] // ako događaj nije bio u "favorites" sada ga dodajemo
                     }
-                    : event
+                    : event // događaj koji nije ciljani ne diramo, ostavljamo takvim kakav jest
             ));
         } catch (error) {
             console.error("Error toggling favorite", error.message);
@@ -121,34 +73,74 @@ export default function Home() {
         return "Nije zadan datum";
     }
 
+    const sortedEvents = createMemo(() => {
+        const sorted = [...events()];
+        const sort = sortBy();
+
+        switch (sort) {
+            case "datetime-desc":
+                return sorted.sort((a, b) => {
+                    const dateA = a.datetime?.toDate?.() || a.datetime || new Date(0);
+                    const dateB = b.datetime?.toDate?.() || b.datetime || new Date(0);
+                    return dateB - dateA;
+                });
+            case "datetime-asc":
+                return sorted.sort((a, b) => {
+                    const dateA = a.datetime?.toDate?.() || a.datetime || new Date(0);
+                    const dateB = b.datetime?.toDate?.() || b.datetime || new Date(0);
+                    return dateA - dateB;
+                });
+            case "name-asc":
+                return sorted.sort((a, b) => a.name.localeCompare(b.name));
+            case "name-desc":
+                return sorted.sort((a, b) => b.name.localeCompare(a.name));
+            case "favorites-desc":
+                return sorted.sort((a, b) => {
+                    const favA = a.favorites?.length || 0;
+                    const favB = b.favorites?.length || 0;
+                    return favB - favA;
+                });
+            default:
+                return sorted;
+        }
+    });
+
+    // tajmeri događaja
+    const [timeLeft, setTimeLeft] = createSignal({});
+    const updateCountdown = () => {
+        const counters = {};
+        sortedEvents().forEach(event => {
+            const date = event.datetime?.toDate?.() || event.datetime;
+            if (date) {
+                counters[event.id] = isPast(date) ? "Prošao" : formatDistanceToNow(date, { addSuffix: true, locale: hr, includeSeconds: true });
+            }
+        });
+        setTimeLeft(counters);
+    }
+
+    createEffect(() => {
+        if (sortedEvents().length > 0) {
+            updateCountdown();
+            const interval = setInterval(updateCountdown, 1000);
+            onCleanup(() => clearInterval(interval));
+        }
+    });
+
     createEffect(async () => {
         if (isAuthenticated()) {
             await loadEvents();
         }
     });
 
-    const EventCard = (props) => (
-        <div class="card bg-base-200 shadow-md">
-            <div class="card-body">
-                <div class="flex justify-between items-start">
-                    <h3 class="card-title">{props.event.name}</h3>
-                    <div class="flex gap-2 items-center">
-                        <span class={`badge ${getDifficultyBadgeClass(props.event.difficulty)}`}>
-                            {props.event.difficulty || "Beginner"}
-                        </span>
-                        <button class="btn btn-ghost btn-circle btn-sm" onClick={() => toggleFavorite(props.event.id)}>
-                            {favorites().includes(props.event.id) ? "💙" : "🤍"}
-                        </button>
-                    </div>
-                </div>
-                <p class="text-sm">{props.event.description}</p>
-                <p class="text-xs text-gray-600">{formatEventDate(props.event.datetime)}</p>
-                <Show when={props.event.favorites?.length > 0}>
-                    <p class="text-xs text-gray-500">💙 {props.event.favorites.length}</p>
-                </Show>
-            </div>
-        </div>
-    );
+    const shareEvent = async (eventId) => {
+        const shareUrl = `${window.location.origin}/event/view/${eventId}`;
+        try {
+            await navigator.clipboard.writeText(shareUrl);
+            addToast("Link događaja kopiran u međuspremnik", "success")
+        } catch (error) {
+            addToast("Greška kopiranja u međuspremnik", "error");
+        }
+    }
 
     return (
         <>
@@ -159,67 +151,56 @@ export default function Home() {
             </Show>
 
             <Show when={isAuthenticated()}>
-                {/* Filter po težini */}
-                <div class="max-w-4xl m-auto mb-6">
-                    <div class="flex gap-2 justify-center flex-wrap">
-                        <button 
-                            class={`btn btn-sm ${difficultyFilter() === "all" ? "btn-primary" : "btn-outline"}`}
-                            onClick={() => setDifficultyFilter("all")}
-                        >
-                            Sve razine
-                        </button>
-                        <For each={difficulties}>
-                            {(difficulty) => (
-                                <button 
-                                    class={`btn btn-sm ${difficultyFilter() === difficulty ? "btn-primary" : "btn-outline"}`}
-                                    onClick={() => setDifficultyFilter(difficulty)}
-                                >
-                                    {difficulty}
-                                </button>
-                            )}
-                        </For>
-                    </div>
-                </div>
-
-                {/* Preporuke */}
-                <Show when={!loading() && getRecommendations().length > 0}>
-                    <div class="max-w-4xl m-auto mb-6">
-                        <h2 class="text-xl font-semibold mb-3 flex items-center gap-2">
-                            <span>✨</span>
-                            <span>Preporučeno za vas</span>
-                        </h2>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <For each={getRecommendations()}>
-                                {(event) => <EventCard event={event} />}
-                            </For>
-                        </div>
-                    </div>
-                </Show>
-
                 <Show when={loading()}>
                     <div class="flex justify-center">
                         <span class="loading loading-spinner loading-lg"></span>
                     </div>
                 </Show>
 
-                <Show when={!loading() && events().length === 0}>
+                <Show when={!loading() && sortedEvents().length === 0}>
                     <p class="text-center text-gray-600">Nema dostupnih događaja</p>
                 </Show>
 
-                <Show when={!loading() && filteredEvents().length === 0 && events().length > 0}>
-                    <p class="text-center text-gray-600">Nema događaja s odabranom razinom težine</p>
-                </Show>
+                <Show when={!loading() && sortedEvents().length > 0}>
+                    {/* Izbornik sortiranja */}
+                    <div class="max-w-4xl m-auto mb-4">
+                        <select class="select select-bordered w-full" value={sortBy()}
+                            onChange={(e) => setSortBy(e.target.value)}>
+                            <option value="datetime-asc">Najraniji prvo</option>
+                            <option value="datetime-desc">Najstariji prvo</option>
+                            <option value="name-asc">Naziv A-Z</option>
+                            <option value="name-desc">Naziv Z-A</option>
+                            <option value="favorites-desc">Najpopularniji</option>
+                        </select>
+                    </div>
 
-                <Show when={!loading() && filteredEvents().length > 0}>
-                    <div class="max-w-4xl m-auto">
-                        <h2 class="text-xl font-semibold mb-3">
-                            {difficultyFilter() === "all" ? "Svi javni događaji" : `${difficultyFilter()} događaji`}
-                        </h2>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <For each={filteredEvents()}>
-                                {(event) => <EventCard event={event} />}
-                            </For>
-                        </div>
+                    <div class="max-w-4xl m-auto grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <For each={sortedEvents()}>
+                            {(event) =>
+                            (
+                                <div class="card bg-base-200 shadow-md">
+                                    <div class="card-body">
+                                        <div class="flex justify-between items-start">
+                                            <h3 class="card-title">{event.name}</h3>
+                                            <div class="flex gap-1">
+                                                <button class="btn btn-ghost btn-circle btn-sm" onClick={() => shareEvent(event.id)}>
+                                                    🔗
+                                                </button>
+                                                <button class="btn btn-ghost btn-circle btn-sm" onClick={() => toggleFavorite(event.id)}>
+                                                    {favorites().includes(event.id) ? "💙" : "🤍"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <p class="text-sm">{event.description}</p>
+                                        <p class="text-xs text-gray-600">{formatEventDate(event.datetime)}</p>
+                                        <p class="text-sm font-semibold text-orange-600">{timeLeft()[event.id]}</p>
+                                        <Show when={event.favorites?.length > 0}>
+                                            <p class="text-xs text-gray-500">💙 {event.favorites.length}</p>
+                                        </Show>
+                                    </div>
+                                </div>
+                            )}
+                        </For>
                     </div>
                 </Show>
             </Show>

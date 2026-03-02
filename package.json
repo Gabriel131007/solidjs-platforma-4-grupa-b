@@ -10,12 +10,13 @@
   },
   "dependencies": {
     "@solidjs/router": "^0.15.4",
+    "date-fns": "^4.1.0",
     "firebase": "^12.6.0",
-    "solid-js": "^1.9.10"
+    "solid-js": "^1.9.10",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.17",
-    "baseline-browser-mapping": "^2.9.7",
     "daisyui": "^5.5.5",
     "tailwindcss": "^4.1.17",
     "vite": "^7.2.2",

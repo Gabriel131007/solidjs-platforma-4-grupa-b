@@ -1,70 +1,69 @@
 import { createSignal, Show, For, createEffect } from "solid-js";
 import { authService } from "../services/auth.js";
-import Message from "../components/Message.jsx";
 import { db } from "../lib/firebase.js";
-import { collection, addDoc, query, where, updateDoc, deleteDoc, getDocs, doc, limit, orderBy } from "firebase/firestore";
+import { collection, addDoc, query, where, updateDoc, deleteDoc, getDocs, doc, limit, orderBy, startAfter } from "firebase/firestore";
+import { addToast } from "../components/Toast.jsx";
 
 export default function EventManagement() {
+    const EVENTS_PER_PAGE = 2;
+
     let formRef;
 
     const [searchTerm, setSearchTerm] = createSignal("");
     const [events, setEvents] = createSignal([]);
     const [selectedEvent, setSelectedEvent] = createSignal(null);
     const [loading, setLoading] = createSignal(false);
-    const [error, setError] = createSignal(null);
-    const [success, setSuccess] = createSignal(null);
-    const [difficultyFilter, setDifficultyFilter] = createSignal("all");
+    const [lastDoc, setLastDoc] = createSignal(null);
+    const [sortBy, setSortBy] = createSignal("created-desc");
+    const [ImageBase64, setImageBase64] = createSignal("");
 
-    const difficulties = ["Beginner", "Intermediate", "Advanced"];
-
-    // pomoćna funkcija za dobivanje CSS klase za razinu težine
-    const getDifficultyBadgeClass = (difficulty) => {
-        switch(difficulty) {
-            case "Beginner": return "badge-success";
-            case "Intermediate": return "badge-warning";
-            case "Advanced": return "badge-error";
-            default: return "badge-ghost";
+    const getSortParams = () => {
+        const sort = sortBy();
+        switch (sort) {
+            case "created-desc":
+                return { field: "created", direction: "desc" };
+            case "created-asc":
+                return { field: "created", direction: "asc" };
+            case "datetime-desc":
+                return { field: "datetime", direction: "desc" };
+            case "datetime-asc":
+                return { field: "datetime", direction: "asc" };
+            case "name-asc":
+                return { field: "name", direction: "asc" };
+            case "name-desc":
+                return { field: "name", direction: "desc" };
+            default:
+                return { field: "created", direction: "desc" };
         }
-    };
+    }
 
     // učitavanje prvih 10 događaja
     const loadInitialEvents = async () => {
         setLoading(true);
-        setError(null);
         try {
-            const user = authService.getCurrentUser();
-            if (!user) {
-                setError("Korisnik nije prijavljen");
-                return;
-            }
-            
-            const userId = user.uid;
+            const userId = authService.getCurrentUser().uid;
             const eventsRef = collection(db, "events");
+            const sortParams = getSortParams();
             const q = query(
                 eventsRef,
-                where("userId", "==", userId)
+                where("userId", "==", userId),
+                orderBy(sortParams.field, sortParams.direction),
+                limit(EVENTS_PER_PAGE)
             );
             const snapshot = await getDocs(q);
-            const allEvents = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-            
-            // sortiramo na klijentskoj strani umjesto u upitu
-            allEvents.sort((a, b) => {
-                const dateA = a.created?.toDate ? a.created.toDate() : new Date(a.created);
-                const dateB = b.created?.toDate ? b.created.toDate() : new Date(b.created);
-                return dateB - dateA;
-            });
-            
-            setEvents(allEvents.slice(0, 10));
+            setEvents(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+            setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
         } catch (error) {
-            console.error("Load error:", error.message);
-            setError("Greška inicijalnog učitavanja događaja");
+            console.error(error.message);
+            addToast("Greška učitavanja", "error");
         } finally {
             setLoading(false);
         }
     }
-    
-    // pozivamo tek kad je komponenta montirana
+    loadInitialEvents(); // poziv pri pokretanju komponenta
+
     createEffect(() => {
+        sortBy();
         loadInitialEvents();
     });
 
@@ -74,56 +73,33 @@ export default function EventManagement() {
         if (!term || term.length <= 3) return;
 
         setLoading(true);
-        setError(null);
-        setSuccess(null);
 
         try {
-            const user = authService.getCurrentUser();
-            if (!user) {
-                setError("Korisnik nije prijavljen");
-                return;
-            }
-            
-            const userId = user.uid;
+            const userId = authService.getCurrentUser().uid;
             const eventsRef = collection(db, "events");
+            const sortParams = getSortParams();
             const q = query(
                 eventsRef,
-                where("userId", "==", userId)
+                where("userId", "==", userId),
+                orderBy(sortParams.field, sortParams.direction),
+                limit(100)
             );
             const snapshot = await getDocs(q);
             const found = snapshot.docs
                 .map((doc) => ({ id: doc.id, ...doc.data() }))
                 .filter((event) => event.name.toLowerCase().includes(term));
-            
-            // sortiramo po datumu kreiranja
-            found.sort((a, b) => {
-                const dateA = a.created?.toDate ? a.created.toDate() : new Date(a.created);
-                const dateB = b.created?.toDate ? b.created.toDate() : new Date(b.created);
-                return dateB - dateA;
-            });
-            
             setEvents(found);
+            setLastDoc(null);
         } catch (error) {
-            console.error("Search error:", error.message);
-            setError("Greška pretraživanja");
+            console.error(error.message);
+            addToast("Greška pretraživanja", "error");
         } finally {
             setLoading(false);
         }
     }
 
-    // filtrirani događaji po težini
-    const filteredEvents = () => {
-        if (difficultyFilter() === "all") {
-            return events();
-        }
-        return events().filter(event => event.difficulty === difficultyFilter());
-    };
-
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        setError(null);
-        setSuccess(null);
 
         const userId = authService.getCurrentUser().uid;
 
@@ -133,11 +109,10 @@ export default function EventManagement() {
             description: data.get("description"),
             datetime: new Date(data.get("datetime")),
             isPrivate: !!data.get("isPrivate"),
-            difficulty: data.get("difficulty") || "Beginner",
+            ImageBase64: ImageBase64() || selectedEvent().ImageBase64 || "",
             userId: userId,
             created: new Date()
         };
-        console.log("Event data", eventData);
 
         try {
             if (selectedEvent()) {
@@ -154,11 +129,12 @@ export default function EventManagement() {
                 const docRef = await addDoc(eventsRef, eventData);
                 setEvents([...events(), { id: docRef.id, ...eventData }]);
                 e.target.reset();
+                setImageBase64("")
             }
-            setSuccess(selectedEvent() ? "Događaj je uspješno ažuriran" : "Događaj je uspješno dodan");
+            addToast(selectedEvent() ? "Događaj je ažuriran" : "Događaj je dodan", "success");
         } catch (error) {
             console.error("Operation error", error.message);
-            setError(selectedEvent() ? "Ažuriranje događaja nije uspjelo" : "Dodavanje događaja nije uspjelo");
+            addToast(selectedEvent() ? "Ažuriranje nije uspjelo" : "Dodavanje nije uspjelo", "error");
         }
     };
 
@@ -166,19 +142,16 @@ export default function EventManagement() {
     const handleDelete = async () => {
         if (!confirm("Jeste li sigurni?")) return;
 
-        setError(null);
-        setSuccess(null);
-
         try {
             const docRef = doc(db, "events", selectedEvent().id);
             await deleteDoc(docRef);
             setEvents(events().filter((event) => (event.id !== selectedEvent().id)));
             setSelectedEvent(null);
             formRef.reset();
-            setSuccess("Događaj je uspješno obrisan");
+            addToast("Događaj je obrisan", "success");
         } catch (error) {
             console.error("Delete error", error.message);
-            setError("Brisanje nije uspjelo");
+            addToast("Brisanje nije uspjelo", "error");
         }
     };
 
@@ -192,9 +165,7 @@ export default function EventManagement() {
                 formRef.datetime.value = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
             }
             formRef.isPrivate.checked = event.isPrivate;
-            if (event.difficulty) {
-                formRef.difficulty.value = event.difficulty;
-            }
+            setImageBase64(event.ImageBase64 || "")
         }
     });
 
@@ -204,6 +175,52 @@ export default function EventManagement() {
         if (datetime.toDate) return datetime.toDate().toLocaleString();
         if (datetime.toLocaleString) return datetime.toLocaleString();
         return "Nije zadan datum";
+    }
+
+    const handleImageChange = (e) => {
+        const file = e.target.files(0);
+        if (!file) return;
+
+        if (file.size > 524288) {
+            addToast("Slika mora biti manje od 512 KB", "error");
+            e.target.value = "";
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onLoad = () => setImageBase64(reader.result);
+        reader.readAsDataURL(file);
+    }
+
+    // učitavanje sljedeće stranice
+    const loadMore = async () => {
+        if (!lastDoc()) return;
+        setLoading(true);
+        try {
+            const userId = authService.getCurrentUser().uid;
+            const eventsRef = collection(db, "events");
+            const sortParams = getSortParams();
+            const q = query(
+                eventsRef,
+                where("userId", "==", userId),
+                orderBy(sortParams.field, sortParams.direction),
+                startAfter(lastDoc()),
+                limit(EVENTS_PER_PAGE + 1)
+            );
+            const snapshot = await getDocs(q);
+            const docs = snapshot.docs.slice(0, EVENTS_PER_PAGE);
+            setEvents([...events(), ...docs.map((doc) => ({ id: doc.id, ...doc.data() }))]);
+            if (snapshot.docs.length > EVENTS_PER_PAGE) {
+                setLastDoc(snapshot.docs[EVENTS_PER_PAGE - 1]);
+            } else {
+                setLastDoc(null);
+            }
+        } catch (error) {
+            console.error(error.message);
+            addToast("Greška učitavanja", "error");
+        } finally {
+            setLoading(false);
+        }
     }
 
     return (
@@ -229,26 +246,17 @@ export default function EventManagement() {
                 </div>
             </div>
 
-            {/* Filter po težini */}
+            {/* Izbornik sortiranja */}
             <div class="max-w-2xl m-auto mb-4">
-                <div class="flex gap-2 justify-center flex-wrap">
-                    <button 
-                        class={`btn btn-sm ${difficultyFilter() === "all" ? "btn-primary" : "btn-outline"}`}
-                        onClick={() => setDifficultyFilter("all")}
-                    >
-                        Sve
-                    </button>
-                    <For each={difficulties}>
-                        {(difficulty) => (
-                            <button 
-                                class={`btn btn-sm ${difficultyFilter() === difficulty ? "btn-primary" : "btn-outline"}`}
-                                onClick={() => setDifficultyFilter(difficulty)}
-                            >
-                                {difficulty}
-                            </button>
-                        )}
-                    </For>
-                </div>
+                <select class="select select-bordered w-full" value={sortBy()}
+                    onChange={(e) => setSortBy(e.target.value)}>
+                    <option value="created-desc">Dodani prije</option>
+                    <option value="created-asc">Dodani kasnije</option>
+                    <option value="datetime-asc">Najraniji prvo</option>
+                    <option value="datetime-desc">Najstariji prvo</option>
+                    <option value="name-asc">Naziv A-Z</option>
+                    <option value="name-desc">Naziv Z-A</option>
+                </select>
             </div>
 
             {/* Tijek učitavanja */}
@@ -259,21 +267,16 @@ export default function EventManagement() {
             </Show>
 
             {/* Prikaz događaja */}
-            <Show when={filteredEvents().length > 0}>
+            <Show when={events().length > 0}>
                 <div class="max-w-2xl m-auto mb-4 space-y-2">
-                    <For each={filteredEvents()}>
+                    <For each={events()}>
                         {(event) => (
                             <div
                                 class={`card bg-base-200 cursor-pointer hover:bg-base-300 ${selectedEvent()?.id === event.id ? "ring-2 ring-primary" : ""}`}
                                 onClick={() => setSelectedEvent(event)}
                             >
                                 <div class="card-body p-4">
-                                    <div class="flex justify-between items-start">
-                                        <h3 class="font-bold">{event.name}</h3>
-                                        <span class={`badge ${getDifficultyBadgeClass(event.difficulty)}`}>
-                                            {event.difficulty || "Beginner"}
-                                        </span>
-                                    </div>
+                                    <h3 class="font-bold">{event.name}</h3>
                                     <p class="text-sm text-gray-600">
                                         {formatEventDate(event.datetime)}
                                         {event.isPrivate && <span class="badge badge-sm ml-2">Privatan</span>}
@@ -285,12 +288,16 @@ export default function EventManagement() {
                 </div>
             </Show>
 
-            <Show when={!loading() && filteredEvents().length === 0 && events().length > 0}>
-                <p class="text-center text-gray-600 mb-4">Nema događaja s odabranom težinom</p>
+            {/* Gumb za učitvanje sljedeće stranice */}
+            <Show when={lastDoc()}>
+                <div class="max-w-2xl m-auto mb-4 flex justify-center">
+                    <button class="btn btn-sm" onClick={loadMore} disabled={loading()}>
+                        <Show when={loading()} fallback="Učitaj više">
+                            <span class="loading loading-spinner loading-sm"></span>
+                        </Show>
+                    </button>
+                </div>
             </Show>
-
-            <Message message={error()} type="error" />
-            <Message message={success()} />
 
             <form class="max-w-2xl m-auto" onSubmit={handleSubmit} ref={formRef}>
                 <label class="floating-label mb-1 w-full">
@@ -307,17 +314,11 @@ export default function EventManagement() {
                     <span>Datum i vrijeme</span>
                 </label>
 
-                <fieldset class="fieldset">
-                    <label class="label">
-                        <span class="label-text">Razina težine</span>
-                    </label>
-                    <select class="select select-bordered w-full" name="difficulty">
-                        <For each={difficulties}>
-                            {(difficulty) => (
-                                <option value={difficulty}>{difficulty}</option>
-                            )}
-                        </For>
-                    </select>
+                <fieldset class="fieldset py-2">
+                    <label class="label cursor-pointer flex flex-col items-gap-2"> 
+                        Slika događaja (max. 512 KB)
+                        </label>
+
                 </fieldset>
 
                 <fieldset class="fieldset py-2">
