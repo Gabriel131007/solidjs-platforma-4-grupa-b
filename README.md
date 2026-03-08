@@ -154,9 +154,6 @@ Kolekcija reviews:
 
 ## 5. Vizualni prototip
 
-Vizualni prototip dostupan je kao statična HTML datoteka u repozitoriju.
-
-Datoteka: prototype/index.html — otvoriti lokalno u pregledniku
 
 Prototip prikazuje:
 - Naslovnicu s hero sekcijom i gridом igara
