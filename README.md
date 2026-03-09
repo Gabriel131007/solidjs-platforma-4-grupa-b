@@ -1,6 +1,4 @@
-# 🎮 Platforma za Recenzije Video Igara
-
-**Tema:** Recenzije video igara
+# GameCrit — Platforma za recenzije video igara
 
 ---
 
@@ -8,118 +6,112 @@
 
 ### Što aplikacija rješava?
 
-GameCrit je web aplikacija namijenjena svim ljubiteljima video igara koji žele dijeliti svoja mišljenja, čitati tuđe recenzije i pratiti što drugi igraju. U moru gaming sadržaja na internetu, korisnici često ne znaju jesu li neke igre vrijedne njihovog vremena i novca — recenzije profesionalnih novinara često zvuče odvojeno od stvarnog iskustva prosječnog igrača, a komentari na društvenim mrežama su kaotični i nepregledni.
+GameCrit je web aplikacija gdje korisnici mogu pisati i čitati recenzije video igara. Ideja mi je došla jer često ne znam koju igru kupiti ili preuzeti, a recenzije na velikim stranicama kao što su IGN ili Metacritic mi ne pomažu puno jer ih pišu profesionalci koji nekad drugačije gledaju na igre nego obični igrači. Htio sam napraviti nešto gdje normalni ljudi mogu napisati što misle o nekoj igri, dati joj ocjenu i pomoći drugima da odluče je li igra vrijedna njihovog vremena.
 
-GameCrit rješava taj problem stvaranjem jednostavne, pregledne i personalizirane platforme za korisničke recenzije. Za razliku od velikih portala poput Metacritica ili IGN-a, GameCrit je zajednica u kojoj obični igrači — a ne profesionalni kritičari — pišu iskrene recenzije iz perspektive stvarnih korisnika. Svaki registrirani korisnik može pretražiti igru, dodati recenziju, ocijeniti je ocjenom od 1 do 10 te pročitati što drugi misle o istom naslovu. Aplikacija automatski izračunava prosječnu korisničku ocjenu na temelju svih dostavljenih recenzija i prikazuje je vidljivo uz svaku igru.
+Aplikacija funkcionira tako da svaki korisnik može pretražiti igru, vidjeti prosječnu ocjenu koju su dali drugi korisnici i pročitati njihove recenzije. Ako želi ostaviti svoju recenziju, treba se registrirati. Ocjena ide od 1 do 10 i uz nju može napisati kraći tekst s mišljenjem. Sve recenzije za jednu igru se automatski zbroje i izračuna se prosječna ocjena koja se prikazuje na stranici igre.
 
-Jedan od ključnih ciljeva aplikacije je jednostavnost i brzina korištenja. Korisnik ne treba prolaziti kroz složene procese — u par klikova pronalazi igru koja ga zanima, vidi ukupnu ocjenu zajednice i može pročitati što je svaki recenzent posebno istaknuo kao prednost ili manu. Svaka recenzija se može strukturirati u dva dijela: pozitivne strane (PRO) i negativne strane (CON), što čitatelju odmah daje jasan pregled bez čitanja cijelog teksta.
+Htio sam da aplikacija bude jednostavna za korištenje. Nije mi cilj napraviti nešto jako komplicirano nego nešto što stvarno ima smisla i što bi netko mogao koristiti. Dizajn će biti taman i gaming, slično kao što izgledaju stranice poput Steama.
 
-Aplikacija je zamišljena kao zajednica temeljena na povjerenju, gdje korisnici mogu pratiti što su sami odigrali, filtrirati igre po žanru ili prosječnoj ocjeni te imati vlastiti profil s poviješću recenzija. Time GameCrit postaje i osobni gaming dnevnik i društvena platforma u jednom.
+Osim pisanja recenzija, korisnik može urediti ili obrisati svoju recenziju ako promijeni mišljenje. Na profilu može vidjeti sve recenzije koje je napisao. Administrator može brisati recenzije koje nisu primjerene i dodavati nove igre u bazu podataka.
 
 ### Tko su korisnici?
 
-Primarna ciljana skupina su mladi igrači između 14 i 30 godina koji redovito igraju video igre i žele dijeliti iskustva s drugima. To su osobe koje su umorile od reklamnih ocjena na velikim portalima i traže autentično mišljenje stvarnih igrača. Njima je bitno da mogu brzo pronaći igru, vidjeti ocjenu i pročitati kratku, jasnu recenziju — bez puno nepotrebnog sadržaja oko nje.
+Aplikaciju bi koristili uglavnom mlađi ljudi koji igraju video igre i žele podijeliti mišljenje ili pročitati što drugi misle prije nego kupe neku igru. Dakle, slični meni — srednjoškolci ili studenti koji prate gaming scenu.
 
-Sekundarni korisnici su administratori platforme koji upravljaju sadržajem i korisnicima te moderiraju potencijalno neprimjerene recenzije. Administrator ima poseban pristup koji mu omogućuje brisanje recenzija, upravljanje popisom igara u bazi i pregled korisničkih računa.
+Postoje tri vrste korisnika u aplikaciji:
+- **Gosti** — mogu gledati igre i čitati recenzije, ali ne mogu pisati
+- **Registrirani korisnici** — mogu pisati, mijenjati i brisati svoje recenzije, imaju profil
+- **Administratori** — mogu brisati tuđe recenzije i dodavati igre u bazu
 
-Ukupno, aplikacija razlikuje tri tipa korisnika:
-- **Gosti** — mogu pregledavati igre i recenzije bez registracije, ali ne mogu pisati recenzije
-- **Registrirani korisnici** — mogu pisati, uređivati i brisati vlastite recenzije te upravljati profilom
-- **Administratori** — imaju ovlasti brisati bilo koju recenziju, upravljati igrama i korisnicima
+### Zašto sam odabrao ovu temu?
 
-### Zašto ova tematika?
+Odabrao sam recenzije video igara jer me ta tema osobno zanima i motivira me više nego da radim nešto generično. Uz to, tema je tehnički dobra za ovaj projekt jer ima sve što treba pokriti — prijavu korisnika, čitanje i pisanje podataka u bazu, različite uloge i responzivni dizajn. Podaci su jasno strukturirani: postoje igre, korisnici i recenzije, što je savršeno za Firestore.
 
-Video igre su jedan od najbrže rastućih oblika zabave na svijetu s godišnjim prihodom koji premašuje filmsku i glazbenu industriju zajedno. Gotovo svaki mlađi čovjek ima iskustvo s video igrama, a mnogi ih igraju svakodnevno — što ovu platformu čini relevantnom za veliku skupinu korisnika. Unatoč tomu, kvalitetnih platformi za korisničke recenzije na regionalnom govornom području gotovo nema.
-
-Odabrana tematika je osobno bliska i motivirajuća za rad. Tehnički je dovoljno zahtjevna za primjenu svih traženih tehnologija — autentifikacija, CRUD operacije, korisničke uloge, responzivni dizajn — a istovremeno je dovoljno jasno omeđena da se može realno završiti u zadanom roku od 20 školskih sati. Podaci su strukturirani (igre, korisnici, recenzije), što je savršeno za vježbu modeliranja Firestore baze.
-
-Aplikacija GameCrit nije samo tehnički projekt — ona ima stvarnu svrhu i mogla bi se koristiti kao pravi alat unutar gaming zajednice. Upravo ta kombinacija tehničke relevantnosti i stvarne korisnosti čini je idealnom temom za završni projekt.
+Mislim da bi ova aplikacija mogla biti korisna i u stvarnom životu, a ne samo kao školski projekt. To mi je bio dodatni razlog za odabir ove teme.
 
 ---
 
-## 2. Tablica funkcionalnosti
+## 2. Popis funkcionalnosti
 
-### Osnovne mogućnosti
+### Osnovne funkcionalnosti
 
-- [ ] Registracija korisnika (email + lozinka putem Firebase Auth)
+- [ ] Registracija korisnika (email i lozinka)
 - [ ] Prijava i odjava
-- [ ] Oporavak zaporke (reset link na email)
-- [ ] Pregled popisa igara
-- [ ] Stranica detalja igre s opisom i recenzijama
-- [ ] Dodavanje recenzije (ocjena 1–10 + tekst)
+- [ ] Oporavak zaboravljene lozinke
+- [ ] Prikaz popisa igara
+- [ ] Stranica pojedine igre s opisom i recenzijama
+- [ ] Pisanje recenzije (ocjena 1–10 i tekst)
 - [ ] Uređivanje vlastite recenzije
 - [ ] Brisanje vlastite recenzije
 - [ ] Automatski izračun prosječne ocjene igre
-- [ ] Korisnički profil (pregled i uređivanje podataka)
-- [ ] Uloge korisnika (user / admin)
-- [ ] Admin: brisanje bilo koje recenzije
-- [ ] Admin: dodavanje igara u bazu
-- [ ] Responzivni dizajn (mobitel i računalo)
+- [ ] Korisnički profil s pregledom vlastitih recenzija
+- [ ] Uloge korisnika (obični korisnik i administrator)
+- [ ] Administrator može obrisati bilo koju recenziju
+- [ ] Administrator može dodati novu igru
+- [ ] Responzivni dizajn (radi na mobitelu i računalu)
 - [ ] Objava putem Firebase Hostinga
 
-### Napredne mogućnosti
+### Napredne funkcionalnosti
 
-- [ ] Pretraživanje igara po imenu (live search)
-- [ ] Filtriranje po žanru (FPS, RPG, Akcija...)
-- [ ] PRO/CON struktura recenzije
-- [ ] Glasanje je li recenzija bila korisna
-- [ ] Označavanje igara kao "Igram / Odigrao"
+- [ ] Pretraživanje igara po nazivu
+- [ ] Filtriranje igara po žanru
 - [ ] Sortiranje recenzija po datumu ili ocjeni
-- [ ] Admin nadzorna ploča sa statistikama
+- [ ] Označavanje igara kao "Igram" ili "Odigrao"
+- [ ] Glasanje je li recenzija korisna
+- [ ] Admin statistike (broj igara, korisnika, recenzija)
 
 ---
 
 ## 3. Scenariji korištenja
 
-### Scenarij 1 — Gost čita recenzije
+### Scenarij 1 — Gost pregledava igre
 
-1. Korisnik otvara aplikaciju i vidi naslovnicu s istaknutim igrama
-2. Pregledava popis igara ili koristi pretraživanje
-3. Klika na igru i otvara se stranica s opisom i recenzijama
-4. Čita recenzije i vidi prosječnu ocjenu zajednice
-5. Bez registracije ne može pisati recenziju — prikazuje mu se poziv na registraciju
+1. Korisnik otvori stranicu i vidi popis igara na naslovnici
+2. Klikne na igru koja ga zanima
+3. Otvori se stranica te igre s opisom, prosječnom ocjenom i recenzijama
+4. Može čitati recenzije bez registracije
+5. Ako želi napisati recenziju, vidi poruku da se treba registrirati
 
-### Scenarij 2 — Registracija i prva recenzija
+### Scenarij 2 — Novi korisnik se registrira i piše recenziju
 
-1. Korisnik klikne "Registracija" u navigaciji
-2. Unosi email i lozinku — Firebase kreira račun
-3. Automatski je prijavljen i preusmjeren na naslovnicu
-4. Pronalazi igru i klikne "Napiši recenziju"
-5. Popunjava formu: ocjena (1–10) i tekst recenzije
-6. Potvrđuje — recenzija se sprema u Firestore
-7. Recenzija je odmah vidljiva, prosječna ocjena se ažurira
+1. Korisnik klikne na "Registracija"
+2. Upiše email i lozinku i potvrdi
+3. Firebase kreira račun i korisnik je automatski prijavljen
+4. Pronađe igru i klikne "Napiši recenziju"
+5. Odabere ocjenu od 1 do 10 i napiše tekst
+6. Klikne spremi — recenzija se pojavi na stranici igre
+7. Prosječna ocjena igre se automatski ažurira
 
-### Scenarij 3 — Uređivanje i brisanje recenzije
+### Scenarij 3 — Korisnik mijenja ili briše recenziju
 
-1. Prijavljeni korisnik otvara stranicu igre
-2. Uz vlastitu recenziju vidi gumbe "Uredi" i "Obriši"
+1. Prijavljeni korisnik ode na stranicu igre koju je recenzirao
+2. Uz svoju recenziju vidi gumbe "Uredi" i "Obriši"
 
-Uređivanje:
-3. Klikne "Uredi" — forma se popunjava trenutnim sadržajem
-4. Mijenja ocjenu ili tekst i sprema
+Ako uređuje:
+3. Klikne "Uredi", forma se otvori s trenutnim tekstom i ocjenom
+4. Promijeni što želi i spremi
 5. Recenzija i prosječna ocjena se ažuriraju
 
-Brisanje:
-3. Klikne "Obriši" — pojavljuje se modal za potvrdu
-4. Potvrđuje brisanje — recenzija je uklonjena
-5. Prosječna ocjena se automatski preračunava
+Ako briše:
+3. Klikne "Obriši" i pojavi se prozor za potvrdu
+4. Potvrdi brisanje
+5. Recenzija je obrisana i prosječna ocjena se preračuna
 
-### Scenarij 4 — Oporavak zaboravljene lozinke
+### Scenarij 4 — Korisnik je zaboravio lozinku
 
-1. Korisnik klikne "Prijava" pa "Zaboravili ste lozinku?"
-2. Unosi email adresu i potvrđuje
-3. Firebase šalje reset email
-4. Korisnik otvara email i klikne link za reset
-5. Unosi novu lozinku i prijavljuje se normalno
+1. Na stranici prijave klikne "Zaboravili ste lozinku?"
+2. Upiše svoju email adresu
+3. Dobije email s linkom za resetiranje lozinke
+4. Klikne link, upiše novu lozinku
+5. Prijavi se s novom lozinkom
 
-### Scenarij 5 — Administrator moderira sadržaj
+### Scenarij 5 — Administrator dodaje igru i moderira recenzije
 
-1. Admin se prijavljuje s admin računom
-2. U navigaciji mu se pojavljuju admin opcije
-3. U admin panelu može pregledati i obrisati neprimjerene recenzije
-4. Može dodati novu igru popunjavanjem forme (naslov, opis, žanr, godina)
-5. Može pregledati popis svih korisnika
-6. Sve promjene su odmah vidljive svim korisnicima
+1. Admin se prijavi sa svojim računom
+2. U navigaciji mu se pojave dodatne opcije
+3. Klikne "Dodaj igru", ispuni formu s nazivom, opisom, žanrom i godinom
+4. Igra se pojavi u popisu za sve korisnike
+5. Ako neka recenzija nije primjerena, admin je može obrisati iz admin panela
 
 ---
 
@@ -130,7 +122,6 @@ Kolekcija users:
 - displayName (string)
 - role — "user" ili "admin" (string)
 - createdAt (timestamp)
-- avatarUrl (string, opcionalno)
 
 Kolekcija games:
 - title (string)
@@ -138,12 +129,12 @@ Kolekcija games:
 - genre (string)
 - releaseYear (number)
 - coverUrl (string)
-- averageRating (number) — automatski se ažurira uz svaku recenziju
+- averageRating (number) — ažurira se automatski
 - reviewCount (number)
 
 Kolekcija reviews:
-- gameId (string) — referenca na igru
-- userId (string) — referenca na korisnika
+- gameId (string) — koja igra
+- userId (string) — koji korisnik
 - authorName (string)
 - rating (number, 1–10)
 - text (string)
@@ -154,14 +145,12 @@ Kolekcija reviews:
 
 ## 5. Vizualni prototip
 
+![vizualni prototip](
 
-Prototip prikazuje:
-- Naslovnicu s hero sekcijom i gridом igara
-- Stranicu igre s opisom, prosječnom ocjenom i recenzijama
-- Formu za pisanje recenzije
-- Profil korisnika s vlastitim recenzijama
-- Stranicu prijave i registracije
-- Admin panel s tablicama recenzija i korisnika
-
-
-Tablica funkcionalnosti ažurirat će se po završetku svake faze.
+Prikazuje sljedeće ekrane:
+- Naslovnica s popisom igara
+- Stranica pojedine igre s recenzijama
+- Forma za pisanje recenzije
+- Korisnički profil
+- Stranica za prijavu i registraciju
+- Admin panel
